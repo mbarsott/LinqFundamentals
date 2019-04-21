@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -10,8 +11,90 @@ namespace Cars
     {
         static void Main(string[] args)
         {
-            CreateXml();
-            QueryXml();
+            //            Func<int, int> square = x => x * x;
+            //            Console.WriteLine(square);
+            //            Console.WriteLine(square(3));
+            //            Expression<Func<int, int, int>> add = (a, b) => a + b;
+            //            Console.WriteLine(add);
+            //            var addInvocable = add.Compile();
+            //            Console.WriteLine(addInvocable(3, 5));
+
+            Database.SetInitializer(new DropCreateDatabaseIfModelChanges<CarDb>());
+            InsertData();
+            QueryData();
+        }
+
+        private static void QueryData()
+        {
+            var db = new CarDb();
+            db.Database.Log = Console.WriteLine;
+            var query =
+                //                from car in db.Cars
+                //                orderby car.Combined descending, car.Name
+                //                select car;
+                //                db.Cars.OrderByDescending(c => c.Combined).ThenBy(c => c.Name).Take(10);
+
+                //                db.Cars.Where(c => c.Manufacturer == "BMW")
+                //                    .OrderByDescending(c => c.Combined)
+                //                    .ThenBy(c => c.Name)
+                //                    //                    .ToList() // returns a type that does not implement IQueryable, so all elements are put in memory at this point
+                //                    .Take(10)
+                //                    //                    .Select(c => new { Name = c.Name.ToUpper() }) // Linq to Sql is happy with this and uses UPPER funcion in sql query
+                //                    //                    .Select(c => new { Name = c.Name.Split(' ') }) // Linq to Sql and causes a runtime exception of not supported
+                //                    .ToList();
+                //            foreach (var item in query)
+                //            {
+                //                Console.WriteLine(item.Name);
+                //            }
+
+                //            Console.WriteLine(query.Count());
+                //            foreach (var car in query)
+                //            {
+                //                Console.WriteLine($"{car.Name}: {car.Combined}");
+                //            }
+
+                //                db.Cars.GroupBy(c => c.Manufacturer)
+                //                    .Select(g => new
+                //                    {
+                //                        Name = g.Key,
+                //                        Cars = g.OrderByDescending(c => c.Combined).Take(2)
+                //                    });
+                from car in db.Cars
+                group car by car.Manufacturer
+                into manufacturer
+                select new
+                {
+                    Name = manufacturer.Key,
+                    //    Cars=manufacturer.OrderByDescending(c=>c.Combined).ThenBy(c=>c.Name).Take(2)
+                    Cars = (from car in manufacturer
+                            orderby car.Combined descending, car.Name
+                            select car).Take(2)
+                };
+
+            foreach (var group in query)
+            {
+                Console.WriteLine(group.Name);
+                foreach (var car in group.Cars)
+                {
+                    Console.WriteLine($"\t{car.Name}: {car.Combined}");
+                }
+            }
+        }
+
+        private static void InsertData()
+        {
+            var cars = ProcessCars("fuel.csv");
+            var db = new CarDb();
+            //            db.Database.Log = Console.WriteLine;
+            if (!db.Cars.Any())
+            {
+                foreach (var car in cars)
+                {
+                    db.Cars.Add(car);
+                }
+
+                db.SaveChanges();
+            }
         }
 
         private static void QueryXml()
